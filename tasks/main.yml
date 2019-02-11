@@ -1,0 +1,75 @@
+---
+- name: install ruby depends packages
+  yum:
+      name:
+          - git
+          - bzip2
+          - make
+          - gcc
+          - openssl-devel
+          - readline-devel
+          - zlib-devel
+  tags: ruby
+
+- name: install rbenv package
+  git:
+      repo: https://github.com/rbenv/rbenv
+      dest: /usr/local/src/rbenv
+  tags: ruby
+
+- name: setup rbenv
+  template:
+      src: rbenv.sh.j2
+      dest: /etc/profile.d/rbenv.sh
+      owner: root
+      group: root
+      mode: 0755
+  tags: ruby
+
+- name: install ruby-build plugin
+  git:
+      repo: https://github.com/rbenv/ruby-build
+      dest: /usr/local/src/rbenv/plugins/ruby-build
+  tags: ruby
+
+- name: detected ruby package
+  shell: bash -lc "rbenv versions | grep {{ RUBY_VERSION }}"
+  register: ruby_installed
+  ignore_errors: yes
+  changed_when: false
+  tags: ruby
+
+- name: install ruby package
+  command: bash -lc "rbenv install {{ RUBY_VERSION }} && rbenv global {{ RUBY_VERSION }} && gem install bundler"
+  when: ruby_installed is failed
+  tags: ruby
+
+- name: detected passenger module
+  shell: bash -lc "passenger -v | grep {{ PASSENGER_VERSION }}"
+  register: passenger_installed
+  ignore_errors: yes
+  changed_when: false
+  tags: passenger
+
+- name: install passenger package
+  shell: bash -lc "gem install passenger -v {{ PASSENGER_VERSION }}"
+  when: passenger_installed is failed
+  tags: passenger
+
+- name: install passenger-apache depends packages
+  yum:
+      name:
+          - gcc-c++
+          - libcurl-devel
+          - httpd-devel
+  tags: passenger
+
+- name: install passenger-apache module
+  shell: bash -lc "passenger-install-apache2-module --auto --languages=ruby"
+  when: passenger_installed is failed
+  tags: passenger
+
+- name: setup passenger-apache module
+  shell: bash -lc "passenger-install-apache2-module --snippet >> /etc/httpd/conf.d/{{ passenger_conf_file }}"
+  when: passenger_installed is failed
+  tags: passenger
