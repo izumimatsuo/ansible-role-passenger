@@ -1,2 +1,2 @@
 ---
-passenger_conf_file: default.conf
+passenger_conf_file: passenger.conf
