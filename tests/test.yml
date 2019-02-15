@@ -7,7 +7,7 @@
       docker_container:
         image: centos:centos7
         name: localhost
-        tty: yes
+        detach: yes
         privileged: yes
         recreate: yes
         command: /sbin/init
@@ -25,10 +25,6 @@
   remote_user: root
   roles:
     - role: .
-
-- hosts: localhost
-  connection: docker
-  remote_user: root
   tasks:
     - name: start passenger standalone
       command: bash -lc "passenger start -d"

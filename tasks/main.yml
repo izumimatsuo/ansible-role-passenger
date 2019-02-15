@@ -35,25 +35,25 @@
 - name: detected ruby package
   shell: bash -lc "rbenv versions | grep {{ RUBY_VERSION }}"
   register: ruby_installed
-  ignore_errors: yes
+  failed_when: ruby_installed.rc not in [0, 1]
   changed_when: false
   tags: ruby
 
 - name: install ruby package
   command: bash -lc "rbenv install {{ RUBY_VERSION }} && rbenv global {{ RUBY_VERSION }} && gem install bundler"
-  when: ruby_installed is failed
+  when: ruby_installed.rc == 1
   tags: ruby
 
 - name: detected passenger module
   shell: bash -lc "passenger -v | grep {{ PASSENGER_VERSION }}"
   register: passenger_installed
-  ignore_errors: yes
+  failed_when: passenger_installed.rc not in [0, 1]
   changed_when: false
   tags: passenger
 
 - name: install passenger package
   shell: bash -lc "gem install passenger -v {{ PASSENGER_VERSION }}"
-  when: passenger_installed is failed
+  when: passenger_installed.rc == 1
   tags: passenger
 
 - name: install passenger-apache depends packages
@@ -66,10 +66,10 @@
 
 - name: install passenger-apache module
   shell: bash -lc "passenger-install-apache2-module --auto --languages=ruby"
-  when: passenger_installed is failed
+  when: passenger_installed.rc == 1
   tags: passenger
 
 - name: setup passenger-apache module
   shell: bash -lc "passenger-install-apache2-module --snippet >> /etc/httpd/conf.d/{{ passenger_conf_file }}"
-  when: passenger_installed is failed
+  when: passenger_installed.rc == 1
   tags: passenger
