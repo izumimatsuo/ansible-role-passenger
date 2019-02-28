@@ -15,6 +15,7 @@
   git:
       repo: https://github.com/rbenv/rbenv
       dest: /usr/local/src/rbenv
+      version: "{{ RBENV_VERSION }}"
   tags: ruby
 
 - name: setup rbenv
@@ -30,30 +31,34 @@
   git:
       repo: https://github.com/rbenv/ruby-build
       dest: /usr/local/src/rbenv/plugins/ruby-build
+      version: "{{ RUBY_BUILD_VERSION }}"
   tags: ruby
 
 - name: detected ruby package
   shell: bash -lc "rbenv versions | grep {{ RUBY_VERSION }}"
   register: ruby_installed
-  failed_when: ruby_installed.rc not in [0, 1]
-  changed_when: false
+  failed_when: no
+  changed_when: ruby_installed.rc != 0
+  check_mode: no
   tags: ruby
 
 - name: install ruby package
-  command: bash -lc "rbenv install {{ RUBY_VERSION }} && rbenv global {{ RUBY_VERSION }} && gem install bundler"
-  when: ruby_installed.rc == 1
+  command: bash -lc "rbenv install {{ RUBY_VERSION }} && "\
+                    "rbenv global {{ RUBY_VERSION }} && gem install bundler"
+  when: ruby_installed is changed
   tags: ruby
 
 - name: detected passenger module
   shell: bash -lc "passenger -v | grep {{ PASSENGER_VERSION }}"
   register: passenger_installed
-  failed_when: passenger_installed.rc not in [0, 1]
-  changed_when: false
+  failed_when: no
+  changed_when: passenger_installed.rc != 0
+  check_mode: no
   tags: passenger
 
 - name: install passenger package
-  shell: bash -lc "gem install passenger -v {{ PASSENGER_VERSION }}"
-  when: passenger_installed.rc == 1
+  command: bash -lc "gem install passenger -v {{ PASSENGER_VERSION }}"
+  when: passenger_installed is changed
   tags: passenger
 
 - name: install passenger-apache depends packages
@@ -62,14 +67,16 @@
           - gcc-c++
           - libcurl-devel
           - httpd-devel
+  when: passenger_installed is changed
   tags: passenger
 
 - name: install passenger-apache module
-  shell: bash -lc "passenger-install-apache2-module --auto --languages=ruby"
-  when: passenger_installed.rc == 1
+  command: bash -lc "passenger-install-apache2-module --auto --languages=ruby"
+  when: passenger_installed is changed
   tags: passenger
 
 - name: setup passenger-apache module
-  shell: bash -lc "passenger-install-apache2-module --snippet >> /etc/httpd/conf.d/{{ passenger_conf_file }}"
-  when: passenger_installed.rc == 1
+  shell: bash -lc "passenger-install-apache2-module --snippet >> "\
+                  "/etc/httpd/conf.d/{{ passenger_conf_file }}"
+  when: passenger_installed is changed
   tags: passenger

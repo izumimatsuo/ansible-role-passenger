@@ -1,0 +1,16 @@
+---
+- name: Converge
+  hosts: all
+  roles:
+    - role: ../../../
+  tasks:
+    - name: detected passenger standalone
+      shell: bash -lc 'passenger status | grep "not running"'
+      register: passenger_status
+      failed_when: no
+      changed_when: passenger_status.rc == 0
+      check_mode: no
+
+    - name: start passenger standalone
+      command: bash -lc 'passenger start -d'
+      when: passenger_status is changed
